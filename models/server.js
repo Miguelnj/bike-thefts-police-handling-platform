@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const {dbConnection} = require('../database/config');
 
 class Server {
 
@@ -8,6 +9,10 @@ class Server {
         this.port = process.env.PORT;
 
         this.middleWares();
+
+        this.databaseConnect()
+            .then(() => console.log("MongoDB Operative"))
+            .catch((err) => console.log(`Could not connect database\n${err}`));
 
         this.routes();
     }
@@ -18,8 +23,13 @@ class Server {
         this.app.use(express.static('public'));
     }
 
+    async databaseConnect() {
+        await dbConnection();
+    }
+
     routes() {
         this.app.use('/api/users', require('../routes/users'));
+        this.app.use('/api/cases', require('../routes/cases'));
     }
 
     start() {
