@@ -51,8 +51,13 @@ const updateBikeCase = async (req = request, res = response) => {
 const deleteCase = async (request, res = response) => {
     const {id} = request.params;
     //TODO Check is not already deleted
-    const user = await BikeCase.findByIdAndUpdate(id, {deletedAt: new Date().toISOString()}, {"new": true});
-    res.status(200).json(user)
+    try{
+        const bikeCase = await BikeCase.findByIdAndUpdate(id, {deletedAt: new Date().toISOString()}, {"new": true});
+        res.status(200).json(bikeCase)
+    }catch(error){
+        console.log(error);
+        return res.status(500).json({message: 'Internal Server Error'});
+    }
 };
 
 module.exports = {
