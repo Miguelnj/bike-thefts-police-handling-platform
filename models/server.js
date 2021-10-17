@@ -30,6 +30,7 @@ class Server {
     routes() {
         this.app.use('/api/users', require('../routes/users'));
         this.app.use('/api/cases', require('../routes/cases'));
+        this.app.use('/api/departments', require('../routes/departments'));
     }
 
     start() {

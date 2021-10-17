@@ -11,7 +11,8 @@ const departmentSchema = Schema({
     },
     code: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     latitude: {
         type: Number,
@@ -20,6 +21,9 @@ const departmentSchema = Schema({
     longitude: {
         type: Number,
         required: true
+    },
+    deletedAt: {
+        type: Date
     }
 });
 
