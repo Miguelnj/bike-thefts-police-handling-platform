@@ -1,13 +1,17 @@
 const {Schema, model} = require('mongoose');
 
 const officerSchema = Schema({
-    officerId: {
+    officerCode: {
         type: String,
         required: [true, 'Police officer id is required']
     },
     userId: {
         type: Schema.Types.ObjectId,
         ref: "User"
+    },
+    assignedCase: {
+        type: Schema.Types.ObjectId,
+        ref: "BikeCase"
     },
     departmentId: {
         type: Schema.Types.ObjectId,

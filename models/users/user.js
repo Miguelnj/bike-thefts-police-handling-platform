@@ -5,7 +5,7 @@ const userSchema = Schema({
         type: String,
         required: [true, 'Name is required']
     },
-    surnames: {
+    surname: {
         type: String,
         required: [true, "At least one surname is required"]
     },
@@ -25,6 +25,12 @@ const userSchema = Schema({
     status: {
         type: Boolean,
         default: true
+    },
+    createAt: {
+        type: Date,
+    },
+    updatedAt: {
+        type: Date
     },
     deletedAt: {
         type: Date
