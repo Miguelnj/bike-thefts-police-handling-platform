@@ -28,12 +28,11 @@ class Server {
     }
 
     routes() {
-        this.app.use('/api/users', require('../routes/users/users'));
+        this.app.use('/api/users', require('../routes/users'));
         this.app.use('/api/cases', require('../routes/cases'));
         this.app.use('/api/departments', require('../routes/departments'));
 
-        this.app.use('/api/users/', require('../routes/users/users'));
-        this.app.use('/api/users/bikeOwners', require('../routes/users/bikeOwners'));
+        this.app.use('/api/users/', require('../routes/users'));
     }
 
     start() {
