@@ -1,7 +1,25 @@
 const User = require("../models/users/user");
 const bCrypt = require("bcryptjs");
-const {getPoliceOfficerData, updatePoliceOfficer} = require("./policeOfficers");
+const {getPoliceOfficerData, updatePoliceOfficer, createPoliceOfficer} = require("./policeOfficers");
 const {roles} = require('../models/users/role');
+
+const getUserById = async(id) => {
+    const user = await User.findById(id);
+    if(user.role) {
+        const roleSpecificData = await getSpecificUserDataGivenRole(user.id, user.role)
+        return {data: user, additional: roleSpecificData}
+    }
+    return {data: user}
+}
+
+const getAllUsers = async (limit, from, role = '') => {
+    const query = role === '' ? {status: true} : {status: true, role};
+    const cases = User.find(query).limit(Number(limit)).skip(Number(from));
+    const casesCount = User.countDocuments(query);
+    const [resultCases, resultCasesCount] = await Promise.all([cases, casesCount]);
+
+    return {data: resultCases, total: resultCasesCount};
+};
 
 const getSpecificUserDataGivenRole = async(userId, role) => {
     switch(role) {
@@ -21,7 +39,7 @@ const updateUserByRole = async (userId, role, data) => {
         case roles.BIKE_OWNER:
             return {}; //There is not a specification for bike owner role.
         case roles.POLICE_OFFICER:
-            return await updatePoliceOfficer(data);
+            return await updatePoliceOfficer(userId, data);
         case roles.POLICE_ADMIN:
             return {}; //Not yet implemented
         default:
@@ -29,22 +47,21 @@ const updateUserByRole = async (userId, role, data) => {
     }
 }
 
-const getAllUsers = async (limit, from, role = '') => {
-    const query = role === '' ? {status: true} : {status: true, role};
-    const cases = User.find(query).limit(Number(limit)).skip(Number(from));
-    const casesCount = User.countDocuments(query);
-    const [resultCases, resultCasesCount] = await Promise.all([cases, casesCount]);
-
-    return {data: resultCases, total: resultCasesCount};
-};
-
-const getUserById = async(id) => {
-    const user = await User.findById(id);
-    if(user.role) {
-        const roleSpecificData = await getSpecificUserDataGivenRole(user.id, user.role)
-        return {data: user, additional: roleSpecificData}
+const createAdditionalUserEntityIfNecessary = async(body, role, user) => {
+    try{
+        switch(role) {
+            case roles.BIKE_OWNER:
+                return null; //There is not a specification for bike owner role.
+            case roles.POLICE_OFFICER:
+                return await createPoliceOfficer(body, user.id);
+            case roles.POLICE_ADMIN:
+                return null; //Not yet implemented
+            default:
+                return null;
+        }
+    }catch(error){
+        throw error;
     }
-    return {data: user}
 }
 
 const createUser = async (body, role) => {
@@ -54,14 +71,22 @@ const createUser = async (body, role) => {
     const salt = bCrypt.genSaltSync();
     user.password = bCrypt.hashSync(user.password, salt);
 
-    return await user.save();
+    const createdUser = await user.save();
+    let additionalEntity;
+    try{
+        additionalEntity = await createAdditionalUserEntityIfNecessary(body, role, createdUser);
+    }catch(error){
+        await user.delete(); //Delete the created user because we could not create its related entity
+        throw error;
+    }
+    return additionalEntity ? {data: createdUser, additional: additionalEntity} : {data: createdUser};
 };
 
 const updateUserById = async (id, body) => {
     const {email, name, surname} = body;
     const updatedUser = await User.findByIdAndUpdate(id, {email, name, surname}, {"new": true});
-    const updatedSpecific = await updateUserByRole(id, updatedUser.role, body)
-    return {data: updatedUser, additional: updatedSpecific};
+    const updatedPoliceOfficer = await updateUserByRole(id, updatedUser.role, body)
+    return {data: updatedUser, additional: updatedPoliceOfficer};
 }
 
 const deleteUserById = (id) => {

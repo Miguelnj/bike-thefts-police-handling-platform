@@ -1,6 +1,6 @@
 const {response, request} = require('express');
 const {getAllUsers, getUserById, createUser, updateUserById, deleteUserById} = require('../service/users');
-const {roles} = require('../models/users/role');
+const MissingParametersError = require('../exceptions/MissingParametersError');
 
 const getUsers = async (req = request, res = response) => {
     const {limit = 5, from = 0, role} = req.query;
@@ -26,11 +26,14 @@ const getUser = async (req = request, res = response) => {
 }
 
 const postUser = async (req = request, res = response) => {
+    const {role} = req.body;
     try{
-        const user = await createUser(req.body, roles.BIKE_OWNER);
+        const user = await createUser(req.body, role);
         res.status(200).json(user);
     }catch(error){
-        console.log(error);
+        if(error instanceof MissingParametersError){
+            res.status(400).json({message: 'Missing required parameters'});
+        }
         res.status(500).json({message: 'Internal Server Error'});
     }
 }
@@ -41,6 +44,7 @@ const putUser = async (req = request, res = response) => {
         const updatedUser = await updateUserById(id, req.body)
         res.status(200).json({data: updatedUser})
     }catch(error){
+        console.log(error);
         res.status(500).json({message: 'Internal Server Error'});
     }
 };

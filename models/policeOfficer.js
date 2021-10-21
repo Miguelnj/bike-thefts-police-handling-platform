@@ -3,7 +3,7 @@ const {Schema, model} = require('mongoose');
 const officerSchema = Schema({
     officerCode: {
         type: String,
-        required: [true, 'Police officer id is required']
+        required: [true, 'Police officer code is required']
     },
     userId: {
         type: Schema.Types.ObjectId,
