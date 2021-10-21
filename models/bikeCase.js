@@ -47,7 +47,7 @@ const bikeCaseSchema = Schema({
     },
     officerId: {
         type: Schema.Types.ObjectId,
-        ref: "PoliceOfficer"
+        ref: "Officer"
     },
     ownerId: {
         type: Schema.Types.ObjectId,

@@ -1,5 +1,6 @@
 const {model: Role, roles} = require('../models/users/role');
 const User = require('../models/users/user');
+const BikeCase = require('../models/bikeCase');
 
 const isRoleValid = async(role = '') => {
     const roleExists = Object.values(roles).includes(role);
@@ -13,9 +14,15 @@ const emailExists = async(email = '') => {
     if(user) throw new Error('Email is already registered');
 };
 
+const licenseNumberDoesNotExist = async(licenseNumber) => {
+    if(!licenseNumber) throw new Error('License number is required');
+    const bikeCase = await BikeCase.findOne({licenseNumber});
+    if(bikeCase) throw new Error('License number is already registered');
+};
+
 const userExists = async(id) => {
     const user = await User.findById(id);
     if(!user) throw new Error('The user does not exist in DB');
 };
 
-module.exports = {isRoleValid, emailExists, userExists};
+module.exports = {isRoleValid, emailExists, userExists, licenseNumberDoesNotExist};

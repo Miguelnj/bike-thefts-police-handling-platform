@@ -21,4 +21,20 @@ const createPoliceOfficer = async (body, userId) => {
     });
 }
 
-module.exports = {getPoliceOfficerData, updatePoliceOfficer, createPoliceOfficer}
+//TODO Assign the bike case to officers of a specific department depending of the location - latitude and longitude
+const assignBikeCaseToOfficer = async (bikeCaseId) => {
+    try{
+        let officer = await PoliceOfficer.findOne({assignedCase: null });
+        console.log(officer);
+        if(officer) {
+            const updateCondition = {assignedCase: bikeCaseId};
+            officer = await PoliceOfficer.findByIdAndUpdate(officer.id, updateCondition, {"new": true});
+            return officer.id;
+        }
+    }catch(error){
+        console.log(error);
+        //Do nothing ... until we have a proper log :)
+    }
+}
+
+module.exports = {getPoliceOfficerData, updatePoliceOfficer, createPoliceOfficer, assignBikeCaseToOfficer}
