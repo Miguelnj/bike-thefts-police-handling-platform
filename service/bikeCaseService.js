@@ -1,7 +1,11 @@
 const BikeCase = require("../models/bikeCase");
+const PoliceOfficer = require("../models/policeOfficer");
 require('../models/policeOfficer');
 const {assignBikeCaseToOfficer} = require('../service/policeOfficers');
 const EntityNotFoundError = require("../exceptions/EntityNotFoundError");
+const CannotResolveBikeCase = require("../exceptions/CannotResolveBikeCase");
+const CannotAssignBikeCase = require("../exceptions/CannotAssignBikeCase");
+const {getPoliceOfficerById} = require("./policeOfficers");
 
 
 const buildQueryGivenParams = (params) => {
@@ -13,6 +17,10 @@ const buildQueryGivenParams = (params) => {
         ...(model ? { model } : {}),
         ...(stolenDate ? { stolenDate } : {}),
         ...(address ? { address } : {})};
+}
+
+const getUnAssignedCase = async () => {
+    return BikeCase.findOne({officerId: null, isActive: true});
 }
 
 const getBikeCasesByParams = async(limit, from, params) => {
@@ -33,7 +41,7 @@ const getBikeCasesByParams = async(limit, from, params) => {
 
 const getBikeCaseById = async (id) => {
     try{
-        return await BikeCase.findById(id);
+        return await BikeCase.findById(id).populate('officerId');
     }catch(error){
         return null;
     }
@@ -51,6 +59,61 @@ const createBikeCase = async (body) => {
         if(officerId) bikeCase = await updateBikeCase(bikeCase.id, {officerId});
         return bikeCase;
     }catch(error){
+        throw error;
+    }
+}
+
+const resolveBikeCase = async (id) => {
+    //Set the item as inactive to consider it as resolved, but we could create a
+    // isResolve and resolvedAt attributes for more understanding
+    let bikeCase = await getBikeCaseById(id);
+    if(!bikeCase.officerId || !bikeCase.isActive) throw new CannotResolveBikeCase('bikeCase cannot be resolved');
+
+    try{
+        let updatedBikeCase = await updateBikeCase(id, {isActive: false})
+        const updatedOfficer = await PoliceOfficer.findByIdAndUpdate(updatedBikeCase.officerId, {assignedCase: null})
+
+        const bikeCaseToBeAssigned = await getUnAssignedCase();
+        if(bikeCaseToBeAssigned) {
+            const officerId = await assignBikeCaseToOfficer(bikeCaseToBeAssigned.id, updatedOfficer.id);
+            if(officerId) await updateBikeCase(bikeCaseToBeAssigned.id, {officerId: officerId});
+        }
+
+        return [updatedBikeCase, updatedOfficer];
+    }catch(error){
+        throw error;
+    }
+}
+
+const assignBikeCase = async (id, officerId) => {
+    //Set the item as inactive to consider it as resolved, but we could create a
+    // isResolve and resolvedAt attributes for more understanding
+    let bikeCase = await getBikeCaseById(id);
+    if(!bikeCase.isActive) throw new CannotAssignBikeCase('bikeCase cannot be assigned to an officer');
+
+    const policeOfficerToUpdate = await getPoliceOfficerById(officerId);
+    if(!policeOfficerToUpdate) throw new EntityNotFoundError('Police Officer not found');
+
+    try{
+        if(policeOfficerToUpdate.assignedCase){
+            //Police officer has an assigned case yet... we should updated the case to remove the officerId from it.
+            await unAssignOfficerIdFromBikeCase(policeOfficerToUpdate.assignedCase);
+        }
+        let updatedBikeCase = await updateBikeCase(id, {officerId: officerId})
+        const updatedOfficer = await PoliceOfficer.findByIdAndUpdate(officerId, {assignedCase: id}, {"new": true})
+        return [updatedBikeCase, updatedOfficer];
+    }catch(error){
+        throw error;
+    }
+}
+
+const unAssignOfficerIdFromBikeCase = async (bikeCaseId) => {
+    try{
+        let bikeCase = await getBikeCaseById(bikeCaseId);
+        if(!bikeCase.isActive) return; //Everything is ok, bikeCase is resolved so officerId should not be removed from it.
+        await updateBikeCase(bikeCaseId, {officerId: null});
+    }catch(error){
+        console.log(error);
         throw error;
     }
 }
@@ -80,4 +143,5 @@ const deleteBikeCaseById = async(id) => {
     }
 }
 
-module.exports = {getBikeCasesByParams, createBikeCase, updateBikeCase, deleteBikeCaseById, getBikeCaseById}
+module.exports = {getBikeCasesByParams, createBikeCase, updateBikeCase,
+    deleteBikeCaseById, getBikeCaseById, resolveBikeCase, assignBikeCase}

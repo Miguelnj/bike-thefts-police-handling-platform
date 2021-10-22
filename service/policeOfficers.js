@@ -5,6 +5,10 @@ const getPoliceOfficerData = async(userId) => {
     return PoliceOfficer.findOne({userId});
 }
 
+const getPoliceOfficerById = async(officerId) => {
+    return PoliceOfficer.findById(officerId);
+}
+
 const updatePoliceOfficer = async (id, body) => {
     const {assignedCase, departmentId, officerCode} = body;
     return PoliceOfficer.findOneAndUpdate({userId: id}, {assignedCase, departmentId, officerCode}, {"new": true});
@@ -25,7 +29,6 @@ const createPoliceOfficer = async (body, userId) => {
 const assignBikeCaseToOfficer = async (bikeCaseId) => {
     try{
         let officer = await PoliceOfficer.findOne({assignedCase: null });
-        console.log(officer);
         if(officer) {
             const updateCondition = {assignedCase: bikeCaseId};
             officer = await PoliceOfficer.findByIdAndUpdate(officer.id, updateCondition, {"new": true});
@@ -37,4 +40,4 @@ const assignBikeCaseToOfficer = async (bikeCaseId) => {
     }
 }
 
-module.exports = {getPoliceOfficerData, updatePoliceOfficer, createPoliceOfficer, assignBikeCaseToOfficer}
+module.exports = {getPoliceOfficerData, updatePoliceOfficer, createPoliceOfficer, assignBikeCaseToOfficer, getPoliceOfficerById}

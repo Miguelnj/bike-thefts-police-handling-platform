@@ -1,8 +1,8 @@
 const {Router} = require('express');
 const {roles} = require('../models/users/role');
-const {getBikeCases, postBikeCase, putBikeCase, deleteCase, getBikeCase} = require("../controllers/cases");
+const {getBikeCases, postBikeCase, putBikeCase, deleteCase, getBikeCase, putResolveBikeCase, putAssignBikeCase} = require("../controllers/cases");
 const {validateJWT, validateFields, hasRole, isAdminRole} = require('../middlewares/index');
-const {licenseNumberDoesNotExist} = require("../service/databaseValidation");
+const {licenseNumberDoesNotExist, bikeCaseExists, officerExists} = require("../service/databaseValidation");
 const {check} = require("express-validator");
 
 const router = Router();
@@ -32,7 +32,7 @@ router.post('/', [
 ], postBikeCase);
 
 router.put('/:id', [
-    check('id', 'Not a valid ID').isMongoId(),
+    check('id', 'Not a valid ID').isMongoId().custom(bikeCaseExists),
     validateJWT,
     check('stolenDate', 'Stolen Date is not valid').optional().isISO8601().trim().escape(),
     check('address', 'Stolen Date is not valid').optional().isString().trim().escape(),
@@ -43,8 +43,23 @@ router.put('/:id', [
     validateFields,
 ], putBikeCase);
 
+router.put('/:id/resolve', [
+    check('id', 'Not a valid ID').isMongoId().custom(bikeCaseExists),
+    validateJWT,
+    hasRole(roles.POLICE_OFFICER, roles.POLICE_ADMIN),
+    validateFields,
+], putResolveBikeCase);
+
+router.put('/:id/assign', [
+    check('id', 'Not a valid ID').isMongoId().custom(bikeCaseExists),
+    validateJWT,
+    check('officerId', 'OfficerId not valid').isMongoId().custom(officerExists),
+    hasRole(roles.POLICE_ADMIN),
+    validateFields,
+], putAssignBikeCase);
+
 router.delete('/:id', [
-    check('id', 'Not a valid ID').isMongoId(),
+    check('id', 'Not a valid ID').isMongoId().custom(bikeCaseExists),
     validateJWT,
     isAdminRole,
     validateFields,

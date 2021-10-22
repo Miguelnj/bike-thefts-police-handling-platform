@@ -1,6 +1,10 @@
 const {response, request} = require('express');
-const {getBikeCasesByParams, createBikeCase, updateBikeCase, getBikeCaseById, deleteBikeCaseById} = require('../service/bikeCaseService');
+const {getBikeCasesByParams, createBikeCase, updateBikeCase, getBikeCaseById, deleteBikeCaseById, resolveBikeCase,
+    assignBikeCase
+} = require('../service/bikeCaseService');
 const EntityNotFoundError = require("../exceptions/EntityNotFoundError");
+const CannotResolveBikeCase = require("../exceptions/CannotResolveBikeCase");
+const CannotAssignBikeCase = require("../exceptions/CannotAssignBikeCase");
 
 const getBikeCases = async (req = request, res = response) => {
 
@@ -47,6 +51,34 @@ const putBikeCase = async (req = request, res = response) => {
     }
 };
 
+const putResolveBikeCase = async (req = request, res = response) => {
+    const {id} = req.params;
+
+    try{
+        const [updatedBikeCase, updatedOfficer] = await resolveBikeCase(id);
+        res.status(200).json({data: updatedBikeCase, additional: updatedOfficer})
+    }catch(error){
+        console.log(error);
+        if(error instanceof CannotResolveBikeCase) return res.status(400).json({message: "BikeCase cannot be deleted"});
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+};
+
+const putAssignBikeCase = async (req = request, res = response) => {
+    const {id} = req.params;
+    const {officerId} = req.body;
+    try{
+        const [updatedBikeCase, updatedOfficer] = await assignBikeCase(id, officerId);
+        res.status(200).json({data: updatedBikeCase, additional: updatedOfficer})
+    }catch(error){
+        console.log(error);
+        if(error instanceof CannotAssignBikeCase || error instanceof EntityNotFoundError) {
+            return res.status(400).json({message: "BikeCase cannot be assigned"});
+        }
+        res.status(500).json({message: "Internal Server Error"});
+    }
+};
+
 const deleteCase = async (request, res = response) => {
     const {id} = request.params;
     try{
@@ -59,5 +91,5 @@ const deleteCase = async (request, res = response) => {
 };
 
 module.exports = {
-    getBikeCases, postBikeCase, putBikeCase, deleteCase, getBikeCase
+    getBikeCases, postBikeCase, putBikeCase, deleteCase, getBikeCase, putResolveBikeCase, putAssignBikeCase
 };
